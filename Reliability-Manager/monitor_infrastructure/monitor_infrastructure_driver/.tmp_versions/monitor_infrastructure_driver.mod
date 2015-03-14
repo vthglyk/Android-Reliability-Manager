@@ -1,2 +1,2 @@
-/home/pietro/WORK_FOLDER/ODROID_XU3/DRM_source_code/monitor_infrastructure/monitor_infrastructure_driver/monitor_infrastructure_driver.ko
-/home/pietro/WORK_FOLDER/ODROID_XU3/DRM_source_code/monitor_infrastructure/monitor_infrastructure_driver/monitor_infrastructure_driver.o
+/home/sem15f6/Android-Reliability-Manager/Reliability-Manager/monitor_infrastructure/monitor_infrastructure_driver/monitor_infrastructure_driver.ko
+/home/sem15f6/Android-Reliability-Manager/Reliability-Manager/monitor_infrastructure/monitor_infrastructure_driver/monitor_infrastructure_driver.o
