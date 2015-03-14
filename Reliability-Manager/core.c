@@ -92,9 +92,9 @@
 
 // Pietro -----------------------------------
 // Macros definitions
-#define VARDROID     		// activates stuff related to the VarDroid project, NO
+//#define VARDROID     		// activates stuff related to the VarDroid project, NO
+//#define REL_SENS		// activates the reliability sensors, Maybe
 #define MONITOR_ON		// activates the monitor, Yes
-#define REL_SENS		// activates the reliability sensors, Maybe
 #define MONITOR_EXPORT_LENGTH 1024 //Number of enries of kind "monitor_stats_data" inside the allocated buffer. It has to be same as in the driver and in the userspace program
 #define DEBUG_ON		// sctivates debug functionalities (e.g. printk)
 #define EXYNOS_TMU_COUNT      5 // this should be the same as in exynos_thermal.c
