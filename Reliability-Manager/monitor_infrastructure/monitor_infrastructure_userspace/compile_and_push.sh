@@ -31,6 +31,6 @@
 
 
 make CC=${NDK_TOOLCHAIN}gcc CFLAGS=--sysroot=${NDK_SYSROOT} monitor_userspace
-adb push monitor_userspace data/PIETRO/
+adb push monitor_userspace  /data/monitor_infrastructure/userspace
 
 

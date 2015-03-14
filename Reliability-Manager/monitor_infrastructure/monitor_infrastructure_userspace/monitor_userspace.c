@@ -46,7 +46,7 @@
 #include <pthread.h>
 #include <sys/wait.h> //for wait()
 
-//#define DEBUG // enables printf for debugging
+#define DEBUG // enables printf for debugging
 #define NUM_CPU 8 // number of cpu of the target platform
 #define SLEEP_TIME 1
 
@@ -80,9 +80,8 @@ struct monitor_stats_data {
 // ---------------- MAIN FUNCTION ----------------- //
 
 int main(int argc, char ** argv){
-
-	int fd;	
-	int cpu;	
+	int fd;
+	int cpu;
 	char *log;
 	int ready[NUM_CPU];
 	int ready_old[NUM_CPU];
@@ -92,7 +91,7 @@ int main(int argc, char ** argv){
 	char file_name[60];
 	FILE *fp;
 	int i;
-	system("rm /data/PIETRO/MONITOR_STATS/monitor_stats_data_cpu_*");
+	system("rm /data/monitor_infrastructure/monitor_stats/monitor_stats_data_cpu_*");
 
 
 	#ifdef DEBUG
@@ -106,21 +105,21 @@ int main(int argc, char ** argv){
                 exit(0);
         }
 
-	// save the current status of ready flags	
+	// save the current status of ready flags
 	for (cpu = 0 ; cpu < NUM_CPU ; cpu++){
 		ioctl(fd, READY, &ready[cpu]);
-		ready_old[cpu] = 1 ; 
+		ready_old[cpu] = 1 ;
 	}
-		
+
 	// Main Loop
 	while(1){
-		
-		// sleep to reduce overhead	
-		sleep(SLEEP_TIME);			
+
+		// sleep to reduce overhead
+		sleep(SLEEP_TIME);
 
 		// check each cpu
 		for (cpu = 0 ; cpu < NUM_CPU ; cpu++){
-			
+
 			// select cpu and get the ready flag
 			ioctl(fd, SELECT_CPU, &cpu);
 			ioctl(fd, S_READY, &ready[cpu]);
@@ -137,7 +136,7 @@ int main(int argc, char ** argv){
 
 				// read the buffer and store into log
 				len = read(fd , log , MONITOR_EXPORT_LENGTH);
-				
+
 				// verify correct reading
 		                if (len == -1){
                 		        printf("Error while reading buffer...\n");
@@ -153,10 +152,10 @@ int main(int argc, char ** argv){
 
 				// open file
 				sprintf(buf,"%d",cpu);
-				strcpy(file_name,"/data/PIETRO/MONITOR_STATS/monitor_stats_data_cpu_");
+				strcpy(file_name,"/data/monitor_infrastructure/monitor_stats/monitor_stats_data_cpu_");
 				strcat(file_name,buf);
 				fp = fopen(file_name,"a");
-				
+
 				// write data to file in the right format
 				for(i = MONITOR_EXPORT_LENGTH-1 ; i>=0 ; i--){
                         		fprintf(
@@ -183,9 +182,9 @@ int main(int argc, char ** argv){
 						log_struct[i].test		//18
 								);
 				}
-				
+
 				// close file
-				fclose(fp);				
+				fclose(fp);
 
 				// update ready_old
 		                ready_old[cpu] = ready[cpu];
@@ -198,7 +197,7 @@ int main(int argc, char ** argv){
 	} // end of Main loop
 
 	return 0;
-} 
+}
 
 
 
