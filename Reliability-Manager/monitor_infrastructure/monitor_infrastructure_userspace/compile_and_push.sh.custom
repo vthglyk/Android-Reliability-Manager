@@ -5,7 +5,7 @@ make clean
 
 make
 
-adb push monitor_userspace data/PIETRO
+adb push monitor_userspace /data/monitor_infrastructure/userspace
 
 
 

@@ -1,6 +1,6 @@
 # Paths and settings
 TARGET_PRODUCT = odroidxu3
-ANDROID_ROOT = /media/pietro/cf739281-9e11-46cb-880b-25e524f90f73/ODROIDXU3
+ANDROID_ROOT = /scratch/sem15f6/linux/odroid
 BIONIC_LIBC = $(ANDROID_ROOT)/bionic/libc
 PRODUCT_OUT = $(ANDROID_ROOT)/out/target/product/$(TARGET_PRODUCT)
 CROSS_COMPILE = $(ANDROID_ROOT)/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi-
