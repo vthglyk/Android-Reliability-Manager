@@ -30,7 +30,7 @@
 obj-m := monitor_infrastructure_driver.o
 
 all:
-	make ARCH=arm CROSS_COMPILE=arm-eabi- 
+	make -C /scratch/sem15f6/linux M=$(PWD) modules
 	#make ARCH=arm CROSS_COMPILE=/media/ftpdrive/Dragonboard/Android/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/arm-eabi- -C /media/ftpdrive/Dragonboard/Android/out/target/product/msm8960/obj/KERNEL_OBJ M=$(PWD) modules
 
 # Path Odroid board
