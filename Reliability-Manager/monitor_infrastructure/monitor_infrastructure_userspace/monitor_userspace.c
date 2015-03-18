@@ -46,7 +46,7 @@
 #include <pthread.h>
 #include <sys/wait.h> //for wait()
 
-#define DEBUG // enables printf for debugging
+//#define DEBUG // enables printf for debugging
 #define NUM_CPU 8 // number of cpu of the target platform
 #define SLEEP_TIME 1
 
@@ -88,7 +88,7 @@ int main(int argc, char ** argv){
 	int len;
 	struct monitor_stats_data *log_struct;
 	char buf[3];
-	char file_name[60];
+	char file_name[65];
 	FILE *fp;
 	int i;
 	system("rm /data/monitor_infrastructure/monitor_stats/monitor_stats_data_cpu_*");
@@ -155,7 +155,7 @@ int main(int argc, char ** argv){
 				strcpy(file_name,"/data/monitor_infrastructure/monitor_stats/monitor_stats_data_cpu_");
 				strcat(file_name,buf);
 				fp = fopen(file_name,"a");
-
+				printf("cpu = %d filename = %s\n",cpu,file_name);//bill
 				// write data to file in the right format
 				for(i = MONITOR_EXPORT_LENGTH-1 ; i>=0 ; i--){
                         		fprintf(
@@ -182,7 +182,6 @@ int main(int argc, char ** argv){
 						log_struct[i].test		//18
 								);
 				}
-
 				// close file
 				fclose(fp);
 

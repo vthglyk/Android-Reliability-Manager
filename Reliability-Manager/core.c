@@ -2893,7 +2893,7 @@ inline void vardroid_bubble(int select){
 #ifdef MONITOR_ON
 inline void sample_values(void){	
 	
-	int i;
+	int i, bill;
 	unsigned long int cycles, instructions;
 	struct monitor_stats_data * tmp;
 
@@ -2926,7 +2926,15 @@ inline void sample_values(void){
 	__get_cpu_var(monitor_stats_data)[__get_cpu_var(monitor_stats_index)].task_prio 	= __get_cpu_var(task_prio_monitor); 
 	__get_cpu_var(monitor_stats_data)[__get_cpu_var(monitor_stats_index)].task_static_prio 	= __get_cpu_var(task_static_prio_monitor); 
 	__get_cpu_var(monitor_stats_data)[__get_cpu_var(monitor_stats_index)].test 		= __get_cpu_var(test_var_monitor); 
-
+	
+	bill  =  __get_cpu_var(monitor_stats_data)[ __get_cpu_var(monitor_stats_index) +1 ].cpu;
+	if( __get_cpu_var ( monitor_stats_index ) % 100 == 0 && ( bill == 2 || bill == 3)  ) { // when the index is 0 then the buffer is full
+                #ifdef DEBUG_ON
+                printk(KERN_ALERT "BILL ALERT: monitor_stats_reader.c : CPU %u - monitor_stats_start = %u!! and idx = %u",
+                                                __get_cpu_var(monitor_stats_data)[ __get_cpu_var(monitor_stats_index) +1 ].cpu
+                                                        , __get_cpu_var(monitor_stats_start) ,__get_cpu_var(monitor_stats_index));
+                #endif
+	}
 	// check if the buffer is full (swap if it is)
 	if(__get_cpu_var ( monitor_stats_index ) == 0  ) { // when the index is 0 then the buffer is full
 		#ifdef DEBUG_ON

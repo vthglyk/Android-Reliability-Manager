@@ -1,2 +1,2 @@
-export NDK_TOOLCHAIN=/home/sem15f6/android-ndk-r10d/toolchains/arm-linux-androideabi-4.6/prebuilt/linux-x86/bin/arm-linux-androideabi-
-export NDK_SYSROOT=/home/sem15f6/android-ndk-r10d/platforms/android-9/arch-arm
+setenv NDK_TOOLCHAIN /home/sem15f6/android-ndk-r10d/toolchains/arm-linux-androideabi-4.6/prebuilt/linux-x86/bin/arm-linux-androideabi-
+setenv NDK_SYSROOT /home/sem15f6/android-ndk-r10d/platforms/android-9/arch-arm
