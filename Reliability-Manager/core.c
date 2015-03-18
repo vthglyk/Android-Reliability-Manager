@@ -94,6 +94,7 @@
 // Macros definitions
 //#define VARDROID     		// activates stuff related to the VarDroid project, NO
 //#define REL_SENS		// activates the reliability sensors, Maybe
+#define CONFIG_RELIABILITY
 #define MONITOR_ON		// activates the monitor, Yes
 #define MONITOR_EXPORT_LENGTH 1024 //Number of enries of kind "monitor_stats_data" inside the allocated buffer. It has to be same as in the driver and in the userspace program
 #define DEBUG_ON		// sctivates debug functionalities (e.g. printk)
@@ -101,6 +102,44 @@
 //end of Macros definitions
 
 // Variables definitions
+#ifdef CONFIG_RELIABILITY
+int H_table_dim = 1;
+EXPORT_SYMBOL(H_table_dim);
+long unsigned int H_table[1] = {2000};
+EXPORT_SYMBOL(H_table);
+
+unsigned long int T_LI = 50;
+EXPORT_SYMBOL(T_LI); //LTC_module
+
+DEFINE_PER_CPU(unsigned long int, activate_safe_mode) = 0; //LTC_module
+DEFINE_PER_CPU(unsigned long int, Vf_APP_index); //cpufreq_reliability_TRUE.c
+DEFINE_PER_CPU(unsigned long int, delta_SI) ;  //in principle : scheduling tick;
+DEFINE_PER_CPU(unsigned long int, t_LI) ;	//LTC_module
+DEFINE_PER_CPU(unsigned long int, V_LI) ;	 //LTC_module
+DEFINE_PER_CPU(unsigned long int, delta_LI) ; //LTC_module
+DEFINE_PER_CPU(unsigned long int, V_LTC);	 //LTC_module
+DEFINE_PER_CPU(unsigned long int, V_STC);	 //LTC_module
+DEFINE_PER_CPU(unsigned long int, V_APP); //cpufreq_reliability_TRUE.c
+DEFINE_PER_CPU(unsigned long int, f_APP); //cpufreq_reliability_TRUE.c
+DEFINE_PER_CPU(unsigned int, HL_flag); //cpufreq_reliability_TRUE.c
+DEFINE_PER_CPU(unsigned int, pid_gov); //cpufreq_reliability_TRUE.c
+DEFINE_PER_CPU(unsigned int, reliability_gov_ready) = 0; //cpufreq_reliability_TRUE.c
+
+EXPORT_PER_CPU_SYMBOL(activate_safe_mode);
+EXPORT_PER_CPU_SYMBOL(Vf_APP_index);
+EXPORT_PER_CPU_SYMBOL(delta_SI);
+EXPORT_PER_CPU_SYMBOL(t_LI);
+EXPORT_PER_CPU_SYMBOL(V_LI);
+EXPORT_PER_CPU_SYMBOL(delta_LI);
+EXPORT_PER_CPU_SYMBOL(V_LTC);
+EXPORT_PER_CPU_SYMBOL(V_STC);
+EXPORT_PER_CPU_SYMBOL(V_APP);
+EXPORT_PER_CPU_SYMBOL(f_APP);
+EXPORT_PER_CPU_SYMBOL(HL_flag);
+EXPORT_PER_CPU_SYMBOL(pid_gov);
+EXPORT_PER_CPU_SYMBOL(reliability_gov_ready);
+#endif //CONFIG_RELIABILITY
+
 #ifdef MONITOR_ON   // variables for monitor
 struct monitor_stats_data {
                 unsigned int cpu;
