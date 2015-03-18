@@ -96,13 +96,20 @@
 //#define REL_SENS		// activates the reliability sensors, Maybe
 #define CONFIG_RELIABILITY
 #define MONITOR_ON		// activates the monitor, Yes
+#define LTC_SIGNAL
 #define MONITOR_EXPORT_LENGTH 1024 //Number of enries of kind "monitor_stats_data" inside the allocated buffer. It has to be same as in the driver and in the userspace program
 #define DEBUG_ON		// sctivates debug functionalities (e.g. printk)
 #define EXYNOS_TMU_COUNT      5 // this should be the same as in exynos_thermal.c
 //end of Macros definitions
 
 // Variables definitions
+#ifdef LTC_SIGNAL
+pid_t pid_p = 0;
+EXPORT_SYMBOL(pid_p);
+#endif
+
 #ifdef CONFIG_RELIABILITY
+
 int H_table_dim = 1;
 EXPORT_SYMBOL(H_table_dim);
 long unsigned int H_table[1] = {2000};
