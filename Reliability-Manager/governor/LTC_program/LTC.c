@@ -142,7 +142,7 @@ float pdf_v( float v , float offset , float mult , float degrees);
 
 
 void main(int argc, char ** argv){
-	
+	printf("BILLLLLLLLLL\n");
 	FILE *file;
 	unsigned int pid , activate_safe_mode[NUM_CORES]= {0,0,0,0};
 	FILE *fpid;

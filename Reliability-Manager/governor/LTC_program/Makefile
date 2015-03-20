@@ -64,10 +64,10 @@ OBJS 	= LTC.o chi_square_density.o ln_gamma_function.o gamma_function.o
 # Make rules
 all: LTC
 .c.o:
-	$(CC) $(CFLAGS) -c $<
+	$(CC) $(CFLAGS) -Wall -g  -c $<
 
 LTC: ${OBJS}
-	$(CC) -o $(EXEC_NAME) ${OBJS} $(LDFLAGS)
+	$(CC) -Wall -g -o $(EXEC_NAME) ${OBJS} $(LDFLAGS)
 
 install: LTC
 	test -d $(INSTALL_DIR) || $(INSTALL) -d -m 755 $(INSTALL_DIR)
