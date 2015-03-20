@@ -10,8 +10,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <math.h>
-#include "chi_square_density.h"
-
+#include <float.h>
 
 #define SELECT_CPU	1
 #define SET_V_LTC	9
@@ -36,7 +35,41 @@
 
 void handler (int signum);
 
+static long double const g =  9.65657815377331589457187L;
+static long double const exp_g_o_sqrt_2pi = +6.23316569877722552586386e+3L;
+static long double const e =  2.71828182845904523536028747L;
+static long double const pi = 3.14159265358979323846264338L;
+static long double const log_sqrt_2pi = 9.18938533204672741780329736e-1L;
+static double max_double_arg = 171.0;
+static long double max_long_double_arg = 1755.5L;
+// Bernoulli numbers B(2),B(4),B(6),...,B(20).  Only B(2),...,B(6) currently //
+// used.                                                                     //
 
+static const long double B[] = {   1.0L / (long double)(6 * 2 * 1),
+                                  -1.0L / (long double)(30 * 4 * 3),
+                                   1.0L / (long double)(42 * 6 * 5),
+                                  -1.0L / (long double)(30 * 8 * 7),
+                                   5.0L / (long double)(66 * 10 * 9),
+                                -691.0L / (long double)(2730 * 12 * 11),
+                                   7.0L / (long double)(6 * 14 * 13),
+                               -3617.0L / (long double)(510 * 16 * 15),
+                               43867.0L / (long double)(796 * 18 * 17),
+                             -174611.0L / (long double)(330 * 20 * 19) 
+                           };
+
+static long double const a[] = {
+                                 +1.14400529453851095667309e+4L,
+                                 -3.23988020152318335053598e+4L,
+                                 +3.50514523505571666566083e+4L,
+                                 -1.81641309541260702610647e+4L,
+                                 +4.63232990536666818409138e+3L,
+                                 -5.36976777703356780555748e+2L,
+                                 +2.28754473395181007645155e+1L,
+                                 -2.17925748738865115560082e-1L,
+                                 +1.08314836272589368860689e-4L
+                              };
+
+static const int n = sizeof(B) / sizeof(long double);
 
 static long unsigned int t_life =  5*365*24*60*60 ;//1000 * 10;   // it's a "fake lifetime" , here it is equal to 10 times the long interval duration
 
@@ -133,16 +166,24 @@ float PI(float Kp ,
 		float V , 
 		float delta_LI);
 
-float g( float u , float v , float t_0 , float scale_p , float shape_p);
+float g_f( float u , float v , float t_0 , float scale_p , float shape_p);
 float pdf_u(float x , float mean , float sigma);
 float pdf_v( float v , float offset , float mult , float degrees);
-
+double Chi_Square_Density( double x, float n );
+static long double xLnGamma_Asymptotic_Expansion( long double x );
+long double xLn_Gamma_Function(long double x);
+double Ln_Gamma_Function(double x);
+double Gamma_Function(double x);
+long double xGamma_Function(long double x);
+double Gamma_Function_Max_Arg( void );
+static long double xGamma(long double x);
+static long double Duplication_Formula( long double two_x );
 
 // ---------------- MAIN FUNCTION ---------------- //
 
 
 void main(int argc, char ** argv){
-	printf("BILLLLLLLLLL\n");
+	
 	FILE *file;
 	unsigned int pid , activate_safe_mode[NUM_CORES]= {0,0,0,0};
 	FILE *fpid;
@@ -611,7 +652,7 @@ float calc_R(	float A,
 		for (j=0 ; j<v_num_step ; j++){
 
 
-			g_value = g( 	u + 0.5*subdomain_step_u ,
+			g_value = g_f( 	u + 0.5*subdomain_step_u ,
 					v + 0.5*subdomain_step_v ,
 					t_0 , scale_p , shape_p);
 			exponential_value = exp( -A*g_value);
@@ -629,7 +670,7 @@ float calc_R(	float A,
 			
 
 			if (LI_index > 1){
-				g_value_prec = g( 	u + 0.5*subdomain_step_u ,
+				g_value_prec = g_f( 	u + 0.5*subdomain_step_u ,
 							v + 0.5*subdomain_step_v ,
 							t_0 - delta_LI , scale_p , shape_p);
 				exponential_value_prec = exp( -A*g_value_prec);
@@ -702,7 +743,7 @@ float calc_Rp(	float A,
 	for (i=0 ; i < u_num_step ; i++){
 		for (j=0 ; j<v_num_step ; j++){	
 
-			g_value_life = g( 	u + 0.5*subdomain_step_u ,
+			g_value_life = g_f( 	u + 0.5*subdomain_step_u ,
 						v + 0.5*subdomain_step_v ,
 						t_life , scale_p_life , shape_p_life);
 	
@@ -721,7 +762,7 @@ float calc_Rp(	float A,
 			
 
 
-			g_value_life_prec = g( 	u + 0.5*subdomain_step_u ,
+			g_value_life_prec = g_f( 	u + 0.5*subdomain_step_u ,
 						v + 0.5*subdomain_step_v ,
 						t_0 , scale_p_life , shape_p_life);
 
@@ -803,7 +844,7 @@ float PI(	float Kp ,
 
 
 
-float g( float u , float v , float t_0 , float scale_p , float shape_p){
+float g_f( float u , float v , float t_0 , float scale_p , float shape_p){
 	float r , f , value;
 	
 	r = log ( t_0 / scale_p ) * shape_p * u ;
@@ -843,9 +884,165 @@ float pdf_v( float v , float offset , float mult , float degrees){
 
 //-----------------------------------------------------
 
+double Chi_Square_Density( double x, float n )
+{
+   double n2 = 0.5 * (double) n;
+   double ln_density;
+
+   if ( x < 0.0 ) return 0.0;
+   if ( x == 0.0 ) {
+      if ( n == 1 ) return DBL_MAX;
+      if ( n == 2 ) return 0.5;
+      return 0.0;
+   }
+   ln_density = (n2 - 1.0) * log(0.5 * x) - 0.5 * x - Ln_Gamma_Function(n2);
+   return 0.5 * exp(ln_density);
+}
+
+//----------------------------------------------------
+
+double Ln_Gamma_Function(double x)
+{
+
+       // For a positive argument, 0 < x <= Gamma_Function_Max_Arg() //
+       // then  return log Gamma(x).                                 //
+
+   if (x <= Gamma_Function_Max_Arg()) return log(Gamma_Function(x));
+
+    // otherwise return result from asymptotic expansion of ln Gamma(x). //
+
+   return (double) xLnGamma_Asymptotic_Expansion( (long double) x );
+}
+
+//----------------------------------------------------
+
+long double xLn_Gamma_Function(long double x)
+{
+
+       // For a positive argument, 0 < x <= Gamma_Function_Max_Arg() //
+       // then  return log Gamma(x).                                 //
+
+   if (x <= Gamma_Function_Max_Arg()) return log(xGamma_Function(x));
+
+    // otherwise return result from asymptotic expansion of ln Gamma(x). //
+
+   return xLnGamma_Asymptotic_Expansion( x );
+}
+
+//----------------------------------------------------
+
+static long double xLnGamma_Asymptotic_Expansion( long double x ) {
+   const int  m = 3;
+   long double term[3];
+   long double sum = 0.0L;
+   long double xx = x * x;
+   long double xj = x;
+   long double lngamma = log_sqrt_2pi - xj + (xj - 0.5L) * log(xj);
+   int i;
+
+   for (i = 0; i < m; i++) { term[i] = B[i] / xj; xj *= xx; }
+   for (i = m - 1; i >= 0; i--) sum += term[i]; 
+   return lngamma + sum;
+}
+
+//----------------------------------------------------
 
 
+double Gamma_Function(double x)
+{
+   long double g;
+
+   if ( x > max_double_arg ) return DBL_MAX;
+   g = xGamma_Function( (long double) x);
+   if (fabsl(g) < DBL_MAX) return (double) g;
+   return (g < 0.0L) ? -DBL_MAX : DBL_MAX;
+
+}
+
+//----------------------------------------------------
 
 
+long double xGamma_Function(long double x)
+{
+   long double sin_x;
+   long double rg;
+   long int ix;
+
+             // For a positive argument (x > 0)                 //
+             //    if x <= max_long_double_arg return Gamma(x)  //
+             //    otherwise      return LDBL_MAX.              //
+
+   if ( x > 0.0L )
+      if (x <= max_long_double_arg) return xGamma(x);
+      else return LDBL_MAX;
+
+                   // For a nonpositive argument (x <= 0) //
+                   //    if x is a pole return LDBL_MAX   //
+
+   if ( x > -(long double)LONG_MAX) {
+      ix = (long int) x;
+      if ( x == (long double) ix) return LDBL_MAX;
+   }
+   sin_x = sin(pi * x);
+   if ( sin_x == 0.0L ) return LDBL_MAX;
+
+          // if x is not a pole and x < -(max_long_double_arg - 1) //
+          //                                     then return 0.0L  //
+
+   if ( x < -(max_long_double_arg - 1.0L) ) return 0.0L;
+
+            // if x is not a pole and x >= -(max_long_double - 1) //
+            //                               then return Gamma(x) //
+
+   rg = xGamma(1.0L - x) * sin_x / pi;
+   if ( rg != 0.0L ) return (1.0L / rg);
+   return LDBL_MAX;
+}
+
+//----------------------------------------------------
+
+double Gamma_Function_Max_Arg( void ) { return max_double_arg; }
 
 
+//----------------------------------------------------
+
+static long double xGamma(long double x)
+{
+
+   long double xx = (x < 1.0L) ? x + 1.0L : x;
+   long double temp;
+   int const n = sizeof(a) / sizeof(long double);
+   int i;
+
+   if (x > 1755.5L) return LDBL_MAX;
+
+   if (x > 900.0L) return Duplication_Formula(x);
+
+   temp = 0.0L;
+   for (i = n-1; i >= 0; i--) {
+      temp += ( a[i] / (xx + (long double) i) );
+   }
+   temp += 1.0L;
+   temp *= ( pow((g + xx - 0.5L) / e, xx - 0.5L) / exp_g_o_sqrt_2pi );
+   return (x < 1.0L) ?  temp / x : temp;
+}
+
+
+//----------------------------------------------------
+
+
+static long double Duplication_Formula( long double two_x )
+{
+   long double x = 0.5L * two_x;
+   long double g;
+   double two_n = 1.0;
+   int n = (int) two_x - 1;
+
+   g = pow(2.0L, two_x - 1.0L - (long double) n);
+   g = ldexpl(g,n);
+   g /= sqrt(pi);
+   g *= xGamma_Function(x);
+   g *= xGamma_Function(x + 0.5L);
+
+   return g;
+}
