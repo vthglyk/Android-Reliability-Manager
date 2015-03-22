@@ -1,0 +1,17 @@
+CFLAGS = -Wall -g
+LDFLAGS = -lm -lc -ldl
+CC = gcc
+EXEC_NAME = LTC
+
+OBJS 	= LTC.o chi_square_density.o ln_gamma_function.o gamma_function.o
+# Make rules
+all: LTC
+.c.o:
+	$(CC) $(CFLAGS) -c $<
+
+LTC: ${OBJS}
+	$(CC)  ${OBJS} $(LDFLAGS) -o $(EXEC_NAME)
+
+clean:
+	rm -f *.o $(EXEC_NAME) core
+

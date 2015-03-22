@@ -1,4 +1,4 @@
-APP := monitor_userspace
+APP := test
 ROOT := /scratch/sem15f6/linux/odroid
 INSTALL_DIR := /data/tmp
 NDK_PLATFORM_VER := 9
