@@ -35,6 +35,7 @@ Pietro's changes:  (ctrl+F: "P")
 #include <linux/workqueue.h>
 #include <linux/slab.h>
 
+
 //#include "cpufreq_reliability_test.h"   // contains test vectors 
 
 // PIETRO
@@ -98,12 +99,15 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 
 
 
-#ifdef READ_RELIABILITY_STATS
+#ifdef MONITOR_ON
 //DECLARE_PER_CPU(int , reliability_stats_start);
 #endif
 
 
 #ifdef CONFIG_RELIABILITY
+
+#define NUM_CLUSTERS 2
+#define CPUS_PER_CLUSTER 4
 
 static unsigned int search_in_Vf_table(unsigned int V_STC);
 static long unsigned int search_in_H_table(int pid); 
@@ -125,25 +129,33 @@ DECLARE_PER_CPU(unsigned int, reliability_gov_ready);
 
 //debug
 
-DECLARE_PER_CPU(int , reliability_stats_start);
+DECLARE_PER_CPU(int , monitor_stats_start);
 
 
-unsigned long int Vf_table[2][15] = 
+unsigned long int Vf_table[NUM_CLUSTERS][2][15] = 
+{
 {
 {950,975,1000,1025,1075,1100,1125,1175,1200,1225,1237,1250,1250,1250,1250},
 //{950000,975000,1000000,1025000,1075000,1100000,1125000,1175000,1200000,1225000,1237500,1250000,1250000,1250000,1250000},
-{384000,486000,594000,702000,810000,918000,1026000,1134000,1242000,1350000,1458000,1512000,1566000,1620000,1674000} 
+{1000000,1028571,1057142,1085714,1114285,1142857,1171428,1200000,1228571,1257142,1285714,1314285,1342857,1371428,1400000} 
+},
+{
+{950,975,1000,1025,1075,1100,1125,1175,1200,1225,1237,1250,1250,1250,1250},
+//{950000,975000,1000000,1025000,1075000,1100000,1125000,1175000,1200000,1225000,1237500,1250000,1250000,1250000,1250000},
+{384000,486000,594000,702000,810000,918000,1026000,1134000,1242000,1350000,1458000,1512000,1566000,1620000,1674000}
+}
 };
 
 unsigned long int V_MAX = 1250;
 unsigned long int V_MIN = 950;
 //unsigned long int V_MAX = 1250000;  //PIETRO: if you use the "long" version, there are problems of overflow when multiplying 
 //unsigned long int V_MIN = 950000;
-unsigned long int f_MAX = 1674000;
-unsigned long int f_MIN = 384000;
+unsigned long int f_MAX[NUM_CLUSTERS] = {1400000, 2000000};
+unsigned long int f_MIN[NUM_CLUSTERS] = {1000000, 1200000};
 
+//BILL
 extern int H_table_dim;
-extern long unsigned int H_table[1];
+extern long unsigned int *H_table;
 
 DECLARE_PER_CPU(unsigned int , activate_safe_mode);
 
@@ -389,11 +401,13 @@ static void ondemand_powersave_bias_init_cpu(int cpu)
 	struct cpu_dbs_info_s *dbs_info = &per_cpu(od_cpu_dbs_info, cpu);
 	dbs_info->freq_table = cpufreq_frequency_get_table(cpu);
 	dbs_info->freq_lo = 0;
+	printk (KERN_ALERT "BILL DEBUG : In ondemand_powersave_bias_init_cpu for cpu = %u\n" , cpu);
 }
 
 static void ondemand_powersave_bias_init(void)
 {
 	int i;
+	printk (KERN_ALERT "BILL DEBUG : In ondemand_powersave_bias_init\n" );
 	for_each_online_cpu(i) {
 		ondemand_powersave_bias_init_cpu(i);
 	}
@@ -465,7 +479,8 @@ static ssize_t show_powersave_bias
 static void update_sampling_rate(unsigned int new_rate)
 {
 	int cpu;
-
+	
+	printk (KERN_ALERT "BILL DEBUG : In update_sampling_rate for cpu \n");
 	dbs_tuners_ins.sampling_rate = new_rate
 				     = max(new_rate, min_sampling_rate);
 
@@ -951,6 +966,7 @@ static void do_dbs_timer(struct work_struct *work)
 	unsigned int cpu = dbs_info->cpu;
 	int sample_type = dbs_info->sample_type;
 	int delay ;
+	int bill; //BILL
 	
 	#ifdef LTC_SIGNAL
 	int ret;
@@ -1006,7 +1022,15 @@ static void do_dbs_timer(struct work_struct *work)
 		if ( per_cpu(V_STC,cpu) > V_MAX)
 			per_cpu(V_STC,cpu) = V_MAX ;
 
+		//BILL DEBUG
+		/*printk (KERN_ALERT "BILL DEBUG : H_table_dim = %d\n"
+                                                                ,H_table_dim);
+		for(bill = 0; bill < H_table_dim; bill++) {
+			 printk (KERN_ALERT "BILL DEBUG : H_table[%d] = %lu\n"
+                                                                , bill, H_table[bill]);
 
+		}*/
+		
 		//checking the HL_flag
 		if (per_cpu(activate_safe_mode,cpu)!=1){
 			if (per_cpu(pid_gov,cpu) == 0) {  //IDLE task
@@ -1073,7 +1097,7 @@ static void do_dbs_timer(struct work_struct *work)
 		c_duration_change_freq = c_after_change_freq - c_before_change_freq ; 
 
 		if( per_cpu(t_LI,cpu)%100 == 0){
-			printk (KERN_ALERT "PIETRO DEBUG EXEC TIME CHANGE FREQUENCY : c_duration_change_freq = %lu " , c_duration_change_freq);
+			printk (KERN_ALERT "PIETRO DEBUG EXEC TIME CHANGE FREQUENCY : c_duration_change_freq = %lu in %u\n" , c_duration_change_freq, cpu);
 		}
 
 
@@ -1244,17 +1268,17 @@ static void do_dbs_timer(struct work_struct *work)
 
 
 
-
 static inline void dbs_timer_init(struct cpu_dbs_info_s *dbs_info)
 {
 	/* We want all CPUs to do sampling nearly on same jiffy */
 	int delay = usecs_to_jiffies(dbs_tuners_ins.sampling_rate);
-
+	
+	printk (KERN_ALERT "BILL DEBUG : dbs_timer_init for cpu %u, in total %d\n" , dbs_info->cpu, num_online_cpus());
 	if (num_online_cpus() > 1)
 		delay -= jiffies % delay;
 
 	dbs_info->sample_type = DBS_NORMAL_SAMPLE;
-	INIT_DELAYED_WORK_DEFERRABLE(&dbs_info->work, do_dbs_timer);
+	INIT_DELAYED_WORK(&dbs_info->work, do_dbs_timer);
 	schedule_delayed_work_on(dbs_info->cpu, &dbs_info->work, delay);
 }
 
@@ -1292,6 +1316,9 @@ static void dbs_refresh_callback(struct work_struct *unused)
 	struct cpu_dbs_info_s *this_dbs_info;
 	unsigned int cpu = smp_processor_id();
 
+	//printk (KERN_ALERT "BILL DEBUG : In dbs_refresh_callback \n" );
+
+	
 	get_online_cpus();
 
 	if (lock_policy_rwsem_write(cpu) < 0)
@@ -1336,6 +1363,7 @@ static void dbs_input_event(struct input_handle *handle, unsigned int type,
 		unsigned int code, int value)
 {
 	int i;
+	//printk (KERN_ALERT "BILL DEBUG : In dbs_input_event \n" );
 
 	if ((dbs_tuners_ins.powersave_bias == POWERSAVE_BIAS_MAXLEVEL) ||
 		(dbs_tuners_ins.powersave_bias == POWERSAVE_BIAS_MINLEVEL)) {
@@ -1353,6 +1381,8 @@ static int dbs_input_connect(struct input_handler *handler,
 {
 	struct input_handle *handle;
 	int error;
+	
+	printk (KERN_ALERT "BILL DEBUG : In dbs_input_connect \n" );
 
 	handle = kzalloc(sizeof(struct input_handle), GFP_KERNEL);
 	if (!handle)
@@ -1380,6 +1410,8 @@ err2:
 
 static void dbs_input_disconnect(struct input_handle *handle)
 {
+	printk (KERN_ALERT "BILL DEBUG : In dbs_input_disconnect \n" );
+
 	input_close_device(handle);
 	input_unregister_handle(handle);
 	kfree(handle);
@@ -1407,6 +1439,7 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 	int rc;
 	
 	//int p;		
+	printk (KERN_ALERT "BILL DEBUG : In cpufreq_governor_dbs for cpu = %u \n", cpu );
 
 	this_dbs_info = &per_cpu(od_cpu_dbs_info, cpu);
 
@@ -1418,23 +1451,25 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 
 		// PIETRO
 		//initialization of variables for reliability algorithm
-		per_cpu(V_LTC,cpu) = 950;//000;    //
-		per_cpu(V_STC,cpu) = 950;//000;
-		per_cpu(V_LI,cpu) = 950;//000;
-		per_cpu(delta_LI,cpu) = 500; //1000; // jiffies?
-		per_cpu(t_LI,cpu) = 0 ;  // ??? 
-		per_cpu(delta_SI,cpu) = 1;
-		per_cpu(jiffies_prec,cpu) = 0;
-		per_cpu(activate_safe_mode,cpu) = 0;
-		#ifdef READ_RELIABILITY_STATS
-		//activation of reliability stats reading
-		per_cpu(reliability_gov_ready,cpu) = 1; //this tells the scheduler that the governor is in
-		#endif //READ_RELIABILITY_STATS
+                for_each_cpu(j, policy->cpus) {
 
+			per_cpu(V_LTC,j) = 950;//000;    //
+			per_cpu(V_STC,j) = 950;//000;
+			per_cpu(V_LI,j) = 950;//000;
+			per_cpu(delta_LI,j) = 500; //1000; // jiffies?
+			per_cpu(t_LI,j) = 0 ;  // ??? 
+			per_cpu(delta_SI,j) = 1;
+			per_cpu(jiffies_prec,j) = 0;
+			per_cpu(activate_safe_mode,j) = 0;
+			#ifdef MONITOR_ON
+			//activation of reliability stats reading
+			per_cpu(reliability_gov_ready,j) = 1; //this tells the scheduler that the governor is in
+			#endif //MONITOR_ON
+		}
 
 		//debug
-		printk(KERN_ALERT "PIETRO ALERT : CPUFREQ_GOV_START ,  CPU %u ,  reliability_stats_start = %u , reliability_gov_ready = %u",
-								cpu ,  per_cpu(reliability_stats_start,cpu), per_cpu(reliability_gov_ready,cpu) );
+		printk(KERN_ALERT "PIETRO ALERT : CPUFREQ_GOV_START ,  CPU %u ,  monitor_stats_start = %u , reliability_gov_ready = %u",
+								cpu ,  per_cpu(monitor_stats_start,cpu), per_cpu(reliability_gov_ready,cpu) );
 
 
 
@@ -1507,13 +1542,14 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 
 
 		
-		#ifdef READ_RELIABILITY_STATS
-
-		//deactivation of reliability stats reading
-		per_cpu(reliability_gov_ready,cpu) = 0; // this tells the scheduler that the governor is off
+		#ifdef MONITOR_ON
+		for_each_cpu(j, policy->cpus) {
+			//deactivation of reliability stats reading
+			per_cpu(reliability_gov_ready,j) = 0; // this tells the scheduler that the governor is off
+		}
 		printk(KERN_ALERT "PIETRO ALERT : CPUFREQ_GOV_STOP CPU %u , H_table_dim = %u , reliability_gov_ready = %u" , cpu, H_table_dim , per_cpu(reliability_gov_ready,cpu)  );
 
-		#endif //READ_RELIABILITY_STATS
+		#endif //MONITOR_ON
 		mutex_lock(&dbs_mutex);
 		mutex_destroy(&this_dbs_info->timer_mutex);
 		dbs_enable--;
@@ -1577,6 +1613,8 @@ static int __init cpufreq_gov_dbs_init(void)
 	u64 idle_time;
 	unsigned int i;
 	int cpu = get_cpu();
+	
+	printk (KERN_ALERT "BILL DEBUG : In cpufreq_gov_dbs_init for cpu = %u \n", cpu );
 
 	idle_time = get_cpu_idle_time_us(cpu, NULL);
 	

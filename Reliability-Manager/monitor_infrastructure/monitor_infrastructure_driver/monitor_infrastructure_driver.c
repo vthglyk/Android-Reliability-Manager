@@ -53,7 +53,7 @@
 #define SELECT_CPU 	1
 #define READY 		2
 #define S_READY 	3
-
+#define PASS_H_DIM	4
 
 #define EXYNOS_TMU_COUNT 5 // this has to be the same as in exynos_thermal.c and core.c
 /*
@@ -86,6 +86,8 @@ DECLARE_PER_CPU(int , monitor_stats_index); //index inside of the stats buffer
 DECLARE_PER_CPU(int , monitor_stats_start); //incremented each time a buffer is filled. useful in conditions.
 
 static int selected_cpu = 0;
+extern int H_table_dim;
+extern long unsigned int *H_table;
 
 /* ---- Private Constants and Types -------------------------------------- */
 static char monitorBanner[] __initdata = KERN_INFO "User Mode MONITOR MODULE Driver: 1.00\n";
@@ -175,6 +177,35 @@ static ssize_t monitor_stats_read (struct file *file, char *buf,
 }
 
 
+//copy the table of pid of H applications from userspace
+static ssize_t rel_H_table_write (struct file *file, const char *buf,
+		size_t count, loff_t *ppos) {
+	int err, k;
+
+        printk(KERN_ALERT "Userspace Module : H_table_dim1 = %d\n", H_table_dim);
+
+	//BILL: free and then allocate space for H_table
+	kfree(H_table);
+	H_table = kmalloc(sizeof(long unsigned int)*H_table_dim, GFP_KERNEL);
+	if (!H_table) {
+                printk(KERN_ALERT "monitor_write - kmalloc error");
+                return -EFAULT;
+	}
+
+        err = copy_from_user( H_table  , buf , sizeof(long unsigned int)*H_table_dim  ) ;
+
+	for (k = 0 ; k < H_table_dim ; k++){
+		printk(KERN_ALERT "Userspace Module : H_table element = %lu, k = %d\n", H_table[k], k);
+	}
+
+	if (err != 0){
+		printk(KERN_ALERT "monitor_write - error");
+		return -EFAULT;
+	}
+	return 1;
+}
+
+
 static long monitor_ioctl(struct file *file,
 		unsigned int cmd, unsigned long arg) {
 	long retval = 0;
@@ -200,6 +231,13 @@ static long monitor_ioctl(struct file *file,
 			printk (KERN_ALERT "PIETRO DEBUG : &per_cpu(monitor_stats_start,selected_cpu) = %u" , per_cpu(monitor_stats_start,selected_cpu));
 			}
 			break;
+		case PASS_H_DIM:
+			printk (KERN_ALERT "PIETRO DEBUG : ioctl PASS - ENTER\n");
+			if ( copy_from_user( &H_table_dim, (int *)arg, sizeof(int) )) {
+				printk (KERN_ALERT "PIETRO DEBUG : ioctl PASS - Pass table error")  ;			
+				retval =  -EFAULT;
+			}
+			break;
 		default:
 			printk(KERN_ALERT "DEBUG: monitor_ioctrl - You should not be here!!!!\n");
 			retval = -EINVAL;
@@ -222,7 +260,7 @@ struct file_operations monitor_fops = {
 	.owner		=	THIS_MODULE,
 	.llseek		=	NULL,
 	.read		=	monitor_stats_read,
-	.write		=	NULL,
+	.write		=	rel_H_table_write,
 	.readdir	=	NULL,
 	.poll		=	NULL,
 	.unlocked_ioctl	=	monitor_ioctl,
@@ -299,7 +337,9 @@ done:
 //module exit function
 static void __exit monitor_cleanup_module (void) {
         printk(KERN_ALERT "cleaning up module\n");
-	
+	//BILL: clean H_table
+	H_table_dim = 0;
+	kfree(H_table);
 	device_destroy( monitorDrvClass, monitorDrvDevNum );
 	class_destroy( monitorDrvClass );
 	cdev_del( &monitorDrvCDev );
@@ -315,7 +355,7 @@ module_init(monitor_init_module);
 module_exit(monitor_cleanup_module);
 MODULE_AUTHOR(" Pietro Mercati and Andrea Bartolini" );
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("Read the internal Snapdragon statistics for monitor management");
+MODULE_DESCRIPTION("Read the internal Snapdragon statistics for monitor management and pass the high priority pids from the AppManager");
 
 
 

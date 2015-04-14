@@ -1,45 +1,20 @@
-APP := monitor_userspace
-ROOT := /scratch/sem15f6/linux/odroid
-INSTALL_DIR := /data/tmp
-NDK_PLATFORM_VER := 9
 
-ANDROID_NDK_ROOT := /home/sem15f6/android-ndk-r10d
-ANDROID_NDK_HOST := linux-x86
-ANDROID_SDK_ROOT := $(ROOT)/android-sdk-linux_86
-PREBUILD := $(ANDROID_NDK_ROOT)/toolchains/arm-linux-androideabi-4.6/prebuilt/$(ANDROID_NDK_HOST)
-BIN := $(PREBUILD)/bin
+CC=${NDK_TOOLCHAIN}gcc
+CFLAGS= --sysroot=${NDK_SYSROOT} 
 
-CPP := $(BIN)/arm-eabi-g++
-CC := $(BIN)/arm-linux-androideabi-gcc
 
-GDB_CLIENT := $(BIN)/arm-linux-androideabi-gdb
+# Make rules
+all: monitor_userspace app_manager benchmark
 
-CFLAGS := -fno-short-enums -I$(ANDROID_NDK_ROOT)/platforms/android-$(NDK_PLATFORM_VER)/arch-arm/usr/include
-LDFLAGS := -Wl,--entry=main,-dynamic-linker=/system/bin/linker,-rpath-link=$(ANDROID_NDK_ROOT)/platforms/android-$(NDK_PLATFORM_VER)/arch-arm/usr/lib -L$(ANDROID_NDK_ROOT)/platforms/android-$(NDK_PLATFORM_VER)/arch-arm/usr/lib
-LDFLAGS += -nostdlib -lc
+monitor_userspace: monitor_userspace.c
+	$(CC) $(CFLAGS) monitor_userspace.c -o monitor_userspace
 
-all: $(APP)
+app_manager: app_manager.c
+	$(CC) $(CFLAGS) app_manager.c -o app_manager
 
-OBJS += $(APP).o
-
-$(APP): $(OBJS)
-	$(CC) $(LDFLAGS) -o $@ $^
-
-%.o: %.c
-	$(CC) -c $(INCLUDE) $(CFLAGS) $< -o $@ 
-
-install: $(APP)
-	$(ANDROID_SDK_ROOT)/platform-tools/adb push $(APP) $(INSTALL_DIR)/$(APP) 
-	$(ANDROID_SDK_ROOT)/platform-tools/adb shell chmod 777 $(INSTALL_DIR)/$(APP)
-
-shell:
-	$(ANDROID_SDK_ROOT)/platform-tools/adb shell
-
-run:
-	$(ANDROID_SDK_ROOT)/platform-tools/adb shell $(INSTALL_DIR)/$(APP)
-
-debug:
-	$(GDB_CLIENT) $(APP)
+benchmark: benchmark.c
+	$(CC) $(CFLAGS) benchmark.c -o benchmark
 
 clean:
-	@rm -f $(APP).o $(APP)
+	rm -f *.o monitor_userspace app_manager benchmark
+

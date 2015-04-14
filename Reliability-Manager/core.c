@@ -89,17 +89,14 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/sched.h>
 
+// PIETRO
+#include <linux/reliability.h>
 
 // Pietro -----------------------------------
 // Macros definitions
 //#define VARDROID     		// activates stuff related to the VarDroid project, NO
 //#define REL_SENS		// activates the reliability sensors, Maybe
-#define CONFIG_RELIABILITY
-#define MONITOR_ON		// activates the monitor, Yes
-#define LTC_SIGNAL
-#define MONITOR_EXPORT_LENGTH 1024 //Number of enries of kind "monitor_stats_data" inside the allocated buffer. It has to be same as in the driver and in the userspace program
 #define DEBUG_ON		// sctivates debug functionalities (e.g. printk)
-#define EXYNOS_TMU_COUNT      5 // this should be the same as in exynos_thermal.c
 //end of Macros definitions
 
 // Variables definitions
@@ -109,10 +106,10 @@ EXPORT_SYMBOL(pid_p);
 #endif
 
 #ifdef CONFIG_RELIABILITY
-
-int H_table_dim = 1;
+//BILL: changed H_table_dim and  H_table definitions
+int H_table_dim = 0;
 EXPORT_SYMBOL(H_table_dim);
-long unsigned int H_table[1] = {2000};
+long unsigned int *H_table;
 EXPORT_SYMBOL(H_table);
 
 unsigned long int T_LI = 50;
@@ -129,7 +126,7 @@ DEFINE_PER_CPU(unsigned long int, V_STC);	 //LTC_module
 DEFINE_PER_CPU(unsigned long int, V_APP); //cpufreq_reliability_TRUE.c
 DEFINE_PER_CPU(unsigned long int, f_APP); //cpufreq_reliability_TRUE.c
 DEFINE_PER_CPU(unsigned int, HL_flag); //cpufreq_reliability_TRUE.c
-DEFINE_PER_CPU(unsigned int, pid_gov); //cpufreq_reliability_TRUE.c
+//DEFINE_PER_CPU(unsigned int, pid_gov); //cpufreq_reliability_TRUE.c, BILL: changed to current_sched_pid
 DEFINE_PER_CPU(unsigned int, reliability_gov_ready) = 0; //cpufreq_reliability_TRUE.c
 
 EXPORT_PER_CPU_SYMBOL(activate_safe_mode);
@@ -143,27 +140,11 @@ EXPORT_PER_CPU_SYMBOL(V_STC);
 EXPORT_PER_CPU_SYMBOL(V_APP);
 EXPORT_PER_CPU_SYMBOL(f_APP);
 EXPORT_PER_CPU_SYMBOL(HL_flag);
-EXPORT_PER_CPU_SYMBOL(pid_gov);
+//EXPORT_PER_CPU_SYMBOL(pid_gov);  //BILL: changed to current_sched_pid
 EXPORT_PER_CPU_SYMBOL(reliability_gov_ready);
 #endif //CONFIG_RELIABILITY
 
 #ifdef MONITOR_ON   // variables for monitor
-struct monitor_stats_data {
-                unsigned int cpu;
-                unsigned long int j; //jiffies
-                unsigned long int cycles;
-                unsigned long int instructions;
-		unsigned int temp[EXYNOS_TMU_COUNT] ;
-		unsigned int power_id;
-                unsigned int power ;
-                unsigned int pid ;
-                unsigned int volt ;
-                unsigned int freq ;
-                unsigned int fan ;  //fan speed
-		int task_prio;
-		int task_static_prio;
-		unsigned int test ;
-};
 
 DEFINE_PER_CPU(struct monitor_stats_data *, monitor_stats_data);
 EXPORT_PER_CPU_SYMBOL(monitor_stats_data);
@@ -2939,7 +2920,7 @@ inline void vardroid_bubble(int select){
 #ifdef MONITOR_ON
 inline void sample_values(void){	
 	
-	int i, bill;
+	int i;
 	unsigned long int cycles, instructions;
 	struct monitor_stats_data * tmp;
 
@@ -2973,14 +2954,6 @@ inline void sample_values(void){
 	__get_cpu_var(monitor_stats_data)[__get_cpu_var(monitor_stats_index)].task_static_prio 	= __get_cpu_var(task_static_prio_monitor); 
 	__get_cpu_var(monitor_stats_data)[__get_cpu_var(monitor_stats_index)].test 		= __get_cpu_var(test_var_monitor); 
 	
-	bill  =  __get_cpu_var(monitor_stats_data)[ __get_cpu_var(monitor_stats_index) +1 ].cpu;
-	if( __get_cpu_var ( monitor_stats_index ) % 100 == 0 && ( bill == 2 || bill == 3)  ) { // when the index is 0 then the buffer is full
-                #ifdef DEBUG_ON
-                printk(KERN_ALERT "BILL ALERT: monitor_stats_reader.c : CPU %u - monitor_stats_start = %u!! and idx = %u",
-                                                __get_cpu_var(monitor_stats_data)[ __get_cpu_var(monitor_stats_index) +1 ].cpu
-                                                        , __get_cpu_var(monitor_stats_start) ,__get_cpu_var(monitor_stats_index));
-                #endif
-	}
 	// check if the buffer is full (swap if it is)
 	if(__get_cpu_var ( monitor_stats_index ) == 0  ) { // when the index is 0 then the buffer is full
 		#ifdef DEBUG_ON
