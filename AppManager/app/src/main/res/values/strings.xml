@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">App Manager</string>
+    <string name="my_apps">Applications</string>
+    <string name="pid">Pid</string>
+    <string name="uid">Uid</string>
+    <string name="empty_list">Currently no application is running</string>
+    <string name="confirm">Confirm</string>
+    <string name="refresh">Refresh</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="title_activity_send_pids">SendPids</string>
+</resources>

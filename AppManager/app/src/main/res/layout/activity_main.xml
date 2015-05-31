@@ -1,0 +1,98 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#ffffff"
+    tools:context=".MainActivity" >
+
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="#01aea1">
+
+
+
+        <TextView
+            android:id="@+id/myList"
+            android:layout_height="wrap_content"
+            android:layout_width="0dp"
+            android:layout_weight="0.58"
+            android:layout_marginStart="31dp"
+            android:layout_marginLeft="31dp"
+            android:padding="5dp"
+            android:background="#01aea1"
+            android:text="@string/my_apps"
+            android:textStyle="bold"
+            android:textSize="22sp"
+            android:textColor="#000000"
+            android:gravity="center"/>
+
+
+        <TextView
+            android:id="@+id/pid"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.20"
+            android:padding="5dp"
+            android:text="@string/pid"
+            android:textStyle="bold"
+            android:textSize="22sp"
+            android:textColor="#000000"
+            android:background="#01aea1"
+            android:gravity="center"/>
+
+        <TextView
+            android:id="@+id/uid"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.22"
+            android:padding="5dp"
+            android:text="@string/uid"
+            android:textStyle="bold"
+            android:textSize="22sp"
+            android:textColor="#000000"
+            android:background="#01aea1"
+            android:gravity="center"/>
+    </LinearLayout>
+
+    <ListView
+        android:id="@android:id/list"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/header"
+        android:layout_above="@+id/confirm_button"/>
+
+    <TextView
+        android:id="@android:id/empty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/header"
+        android:paddingTop="10dp"
+        android:text="@string/empty_list"
+        android:textColor="#000000"
+        android:textStyle="bold"
+        android:textSize="18sp"/>
+
+    <Button
+        android:id="@+id/confirm_button"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:background="#94c5cc"
+        android:text="@string/confirm"
+        android:layout_alignParentBottom="true"
+        android:textSize="18sp"
+        android:onClick="sendMessage"/>
+
+    <!--<Button
+        android:id="@+id/refresh_button"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:background="#3B5323"
+        android:text="@string/refresh"
+        android:layout_above="@+id/confirm_button"
+        android:textSize="18sp"
+        android:onClick="refreshList"/>
+-->
+    </RelativeLayout>
