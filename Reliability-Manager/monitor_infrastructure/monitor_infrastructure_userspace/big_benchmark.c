@@ -27,7 +27,7 @@ typedef struct
 //#define DIM_L 1677772 //1024*16*1204
 #define DIM_L   1024*1*1204
 #define STEP 8
-#define CPU_FATHER  0
+#define CPU_FATHER  4
 #define NTIME 10  //Specify the re-iteration number of the
 
 
@@ -73,7 +73,7 @@ main(int argc , char *argv[]) {
 
 
    /* Load the power virus in each core and assign the thread affinity*/
-                for(i=1; i<NUM_CPU; i++){
+                for(i=5; i<NUM_CPU; i++){
                         if ((temp_activeCPU)&(1L)){
                                 printf("DEBUG - FORK CPU %d\n",i);
                                 pidM[i] = fork();
@@ -99,12 +99,12 @@ main(int argc , char *argv[]) {
                  }
                 printf("DEBUG - Padre master figli partoriti!!\n");
 		
-		for(bill = 0; bill < NUM_CPU; bill++) {
+		for(bill = 4; bill < NUM_CPU; bill++) {
 			
 			printf("pidM[%d] = %d\n", bill, pidM[bill]);
 		}
 		pointM[0] = (unsigned int*)malloc((lim*1024)*sizeof(unsigned int));
-		figlio(0, pointM[0],lim,iter_length);
+		figlio(CPU_FATHER, pointM[0],lim,iter_length);
 	
 		while(np < nactiveCPU){
                         wait(&status);

@@ -21,7 +21,7 @@ typedef struct
 
 
 #define NUM_PROCESSI 0
-#define NUM_CPU 8
+#define NUM_CPU 4
 #define ITERS   64*1024*1024
 #define DIM_H   1024*8
 //#define DIM_L 1677772 //1024*16*1204

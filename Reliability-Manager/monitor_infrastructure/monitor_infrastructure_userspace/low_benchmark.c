@@ -21,7 +21,7 @@ typedef struct
 
 
 #define NUM_PROCESSI 0
-#define NUM_CPU 8
+#define NUM_CPU 4
 #define ITERS   64*1024*1024
 #define DIM_H   1024*8
 //#define DIM_L 1677772 //1024*16*1204
@@ -63,13 +63,10 @@ main(int argc , char *argv[]) {
         temp_activeCPU = activeCPU;
         ppid=getpid();
 	pidM[0] = ppid;
-        CPU_ZERO(&mask);
-        CPU_SET(CPU_FATHER, &mask);
   /********* Measure the time took by the entire benchmark ************/
 //        wtime(&astT);
         /*if(sched_setaffinity( 0, sizeof(mask), &mask ) == -1)
                 printf("WARNING: Could not set CPU Affinity, continuing...\n");*/
-	setCurrentThreadAffinityMask(mask);
 
 
    /* Load the power virus in each core and assign the thread affinity*/
@@ -80,9 +77,6 @@ main(int argc , char *argv[]) {
                                 if (pidM[i] == 0) {
                                         pointM[i] = (unsigned int*)malloc((lim*1024)*sizeof(unsigned int));
                                         /* For each CPU fork the son process. */
-					CPU_ZERO(&mask);
-                                        CPU_SET(i, &mask);
-					setCurrentThreadAffinityMask(mask);
                                         figlio(i, pointM[i],lim,iter_length);
                                         exit(0);
                                 }

@@ -45,7 +45,9 @@ this module
 #define GET_JIFFIES	10
 #define PASS_PID	11
 #define ACTIVATE_SAFE_MODE	12
-#define GET_T_LI	13
+#define DEACTIVATE_SAFE_MODE	13
+#define GET_T_LI	14
+
 
 #define LTC_MAJOR 33
 #define LTC_NAME "ltc"
@@ -56,11 +58,11 @@ DECLARE_PER_CPU(unsigned long int, V_LI);
 DECLARE_PER_CPU(unsigned long int, delta_LI);
 DECLARE_PER_CPU(unsigned long int, V_LTC);
 DECLARE_PER_CPU(unsigned long int, V_STC);
-
+DECLARE_PER_CPU(unsigned long int, T_LI);
 
 extern pid_t pid_p;
 
-extern unsigned long int T_LI ; 
+
 
 DECLARE_PER_CPU(unsigned int , activate_safe_mode);
 
@@ -220,14 +222,25 @@ static long ltc_ioctl(struct file *file,
 				printk(KERN_ALERT "PIETRO LTC MODULE : ioctl ACTIVATE_SAFE_MODE %u successful !!", cpu_activate_safe_mode);
 			}
 			break;
-
+			
+		case DEACTIVATE_SAFE_MODE:	
+			if (copy_from_user(&cpu_activate_safe_mode , (pid_t *)arg , sizeof(activate_safe_mode)) ) {
+				printk(KERN_ALERT "PIETRO LTC MODULE : ioctl ACTIVATE_SAFE_MODE - pass error");
+				return -EFAULT;
+			}
+			else{
+				per_cpu(activate_safe_mode,cpu_activate_safe_mode) = 0;
+				printk(KERN_ALERT "PIETRO LTC MODULE : ioctl DEACTIVATE_SAFE_MODE %u successful !!", cpu_activate_safe_mode);
+			}
+			break;
+			
 		case GET_T_LI:		
-			if (copy_to_user((long unsigned int *)arg, &T_LI, sizeof(unsigned long int)) ){
+			if (copy_to_user((long unsigned int *)arg, &per_cpu(T_LI,selected_cpu), sizeof(unsigned long int)) ){
 				printk (KERN_ALERT "PIETRO LTC MODULE : ioctl GET_T_LI - Pass error")  ;				 
 				return -EFAULT;
 			}
 			break;
-
+			
 		default:
 			printk(KERN_ALERT "DEBUG: ltc_ioctrl - You should not be here!!!!\n");
 			retval = -EINVAL;

@@ -41,6 +41,7 @@
 #include <linux/workqueue.h>
 #include <asm/uaccess.h>
 #include <linux/slab.h>
+#include <linux/sched.h>
 
 #include <linux/cpumask.h>
 
@@ -77,6 +78,8 @@ struct monitor_stats_data {
                 int task_prio;
                 int task_static_prio;
 		unsigned int test ;
+                unsigned int HL_flag ;
+
 };
 
 // to be defined in the kernel source code ( e.g. in core.c )
@@ -88,6 +91,8 @@ DECLARE_PER_CPU(int , monitor_stats_start); //incremented each time a buffer is 
 static int selected_cpu = 0;
 extern int H_table_dim;
 extern long unsigned int *H_table;
+extern int U_table_dim;
+extern long unsigned int *U_table;
 
 /* ---- Private Constants and Types -------------------------------------- */
 static char monitorBanner[] __initdata = KERN_INFO "User Mode MONITOR MODULE Driver: 1.00\n";
@@ -180,11 +185,14 @@ static ssize_t monitor_stats_read (struct file *file, char *buf,
 //copy the table of pid of H applications from userspace
 static ssize_t rel_H_table_write (struct file *file, const char *buf,
 		size_t count, loff_t *ppos) {
-	int err, k;
-
-        printk(KERN_ALERT "Userspace Module : H_table_dim1 = %d\n", H_table_dim);
-
-	//BILL: free and then allocate space for H_table
+	int err, k, l;
+	long unsigned int *U_table_tmp;
+	
+	
+	printk(KERN_ALERT "Userspace Module : H_table_dim1 = %d\n", H_table_dim);
+	U_table_dim = 0;
+	
+	//VASILEIOS: free and then allocate space for H_table
 	kfree(H_table);
 	H_table = kmalloc(sizeof(long unsigned int)*H_table_dim, GFP_KERNEL);
 	if (!H_table) {
@@ -192,16 +200,71 @@ static ssize_t rel_H_table_write (struct file *file, const char *buf,
                 return -EFAULT;
 	}
 
-        err = copy_from_user( H_table  , buf , sizeof(long unsigned int)*H_table_dim  ) ;
-
+    err = copy_from_user( H_table  , buf , sizeof(long unsigned int)*H_table_dim  ) ;
+	
+	if (err != 0){
+		printk(KERN_ALERT "monitor_write - error in H_table");
+		return -EFAULT;
+	}
 	for (k = 0 ; k < H_table_dim ; k++){
 		printk(KERN_ALERT "Userspace Module : H_table element = %lu, k = %d\n", H_table[k], k);
 	}
-
-	if (err != 0){
-		printk(KERN_ALERT "monitor_write - error");
-		return -EFAULT;
+	
+	
+	U_table_tmp = kmalloc(sizeof(long unsigned int)*H_table_dim, GFP_KERNEL);	
+	if (!U_table_tmp) {
+        printk(KERN_ALERT "monitor_write - kmalloc error in U_table_tmp");
+        return -EFAULT;
 	}
+	
+	for (k = 0 ; k < H_table_dim ; k++){
+		struct task_struct *task;
+		long unsigned int uid;
+		struct pid *pid_tmp;
+		int is_in_table = 0;
+		
+		printk(KERN_ALERT "Before finding task\n");
+		pid_tmp = find_vpid(H_table[k]);
+		if(!pid_tmp) {
+			printk(KERN_ALERT "pid_tmp = NULL\n");
+			continue;
+		}
+		task = pid_task(pid_tmp , PIDTYPE_PID);
+		if(!task) {
+			printk(KERN_ALERT "task = NULL\n");
+			continue;
+		}
+		printk(KERN_ALERT "task->pid = %lu\n", task->pid);
+		uid = (long unsigned int) task->real_cred->uid;
+		printk(KERN_ALERT "uid = %lu\n", uid);
+
+		for (l = 0 ; l < U_table_dim ; l++){
+			if(uid == U_table_tmp[l])
+				is_in_table = 1;
+		}
+		
+		if(!is_in_table) {
+			U_table_tmp[U_table_dim] = uid;
+			U_table_dim++;
+		}
+	}
+	
+	kfree(U_table);
+	U_table = kmalloc(sizeof(long unsigned int)*U_table_dim, GFP_KERNEL);
+	
+	if (!U_table) {
+        printk(KERN_ALERT "monitor_write - kmalloc error in U_table");
+        return -EFAULT;
+	}
+	
+	memcpy(U_table, U_table_tmp, U_table_dim);
+	
+	for (k = 0 ; k < U_table_dim ; k++){
+		U_table[k] = U_table_tmp[k];
+		printk(KERN_ALERT "Userspace Module : U_table element = %lu, k = %d\n", U_table[k], k);
+	}	
+	
+	kfree(U_table_tmp);
 	return 1;
 }
 
@@ -337,9 +400,12 @@ done:
 //module exit function
 static void __exit monitor_cleanup_module (void) {
         printk(KERN_ALERT "cleaning up module\n");
-	//BILL: clean H_table
+	//VASILEIOS: clean H_table
 	H_table_dim = 0;
+	U_table_dim = 0;	
 	kfree(H_table);
+	kfree(U_table);
+
 	device_destroy( monitorDrvClass, monitorDrvDevNum );
 	class_destroy( monitorDrvClass );
 	cdev_del( &monitorDrvCDev );

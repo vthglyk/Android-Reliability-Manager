@@ -21,13 +21,13 @@ typedef struct
 
 
 #define NUM_PROCESSI 0
-#define NUM_CPU 8
+#define NUM_CPU 1
 #define ITERS   64*1024*1024
 #define DIM_H   1024*8
 //#define DIM_L 1677772 //1024*16*1204
 #define DIM_L   1024*1*1204
-#define STEP 8
 #define CPU_FATHER  0
+#define STEP 8
 #define NTIME 10  //Specify the re-iteration number of the
 
 
@@ -64,7 +64,7 @@ main(int argc , char *argv[]) {
         ppid=getpid();
 	pidM[0] = ppid;
         CPU_ZERO(&mask);
-        CPU_SET(CPU_FATHER, &mask);
+        CPU_SET(atoi(argv[2]), &mask);
   /********* Measure the time took by the entire benchmark ************/
 //        wtime(&astT);
         /*if(sched_setaffinity( 0, sizeof(mask), &mask ) == -1)
@@ -218,7 +218,7 @@ void figlio(int cpu, unsigned int *A,int lim, int iterLength) {
 		if (t > 200000000) {
 			t = 0;
 			printf("Hello from CPU%d\n",cpu);
-			sleep(1);
+			//sleep(1);
 		}
 	}			
 	printf("t = %d", t);	

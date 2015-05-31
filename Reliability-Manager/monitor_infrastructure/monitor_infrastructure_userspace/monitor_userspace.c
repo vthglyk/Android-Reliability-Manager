@@ -75,6 +75,8 @@ struct monitor_stats_data {
                	int task_prio;
                 int task_static_prio;
 		unsigned int test ;
+	        unsigned int HL_flag ;
+
 };
 
 // ---------------- MAIN FUNCTION ----------------- //
@@ -160,8 +162,8 @@ int main(int argc, char ** argv){
 				for(i = MONITOR_EXPORT_LENGTH-1 ; i>=0 ; i--){
                         		fprintf(
 						fp,
-					       //1    2    3    4    5    6    7    8    9    10   11   12   13   14   15   16  17  18   19
-                                        	"%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%d\t%d\t%lu\t%lu\n",
+					       //1    2    3    4    5    6    7    8    9    10   11   12   13   14   15   16  17  18   19   20
+                                        	"%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%d\t%d\t%lu\t%lu\t%u\n",
                                                 log_struct[i].cpu,		//1
                                                 log_struct[i].j,		//2
                                                 log_struct[i].cycles,		//3
@@ -181,7 +183,8 @@ int main(int argc, char ** argv){
 						log_struct[i].task_static_prio,	//17
 						log_struct[i].test,		//18
 						(i == MONITOR_EXPORT_LENGTH-1 || (log_struct[i].j -  log_struct[i+1].j) == 0) ? 0 :
-						(log_struct[i].cycles - log_struct[i+1].cycles) / (log_struct[i].j -  log_struct[i+1].j)//19
+						(log_struct[i].cycles - log_struct[i+1].cycles) / (log_struct[i].j -  log_struct[i+1].j), //19
+						log_struct[i].HL_flag		//20
 						);
 				}
 				// close file

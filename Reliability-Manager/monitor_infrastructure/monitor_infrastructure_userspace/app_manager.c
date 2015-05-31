@@ -47,5 +47,5 @@ void main(int argc, char ** argv){
 
 	sleep(1);
 	printf("You chose to exit the app_manager\n");
-
+	close(fd);
 }

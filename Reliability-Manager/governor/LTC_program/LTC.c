@@ -24,12 +24,14 @@
 #define GET_JIFFIES	10
 #define PASS_PID        11
 #define ACTIVATE_SAFE_MODE	12
-#define GET_T_LI	13
+#define DEACTIVATE_SAFE_MODE	13
+#define GET_T_LI	14
+
 
 #define LTC_ALG
 
-#define NUM_CORES 8
-
+#define NUM_CLUSTERS 2
+#define CPUS_PER_CLUSTER 4
 
 // ------------------- LTC VARIABLES AND SETTINGS ------------------------- //
 
@@ -42,7 +44,7 @@ static long unsigned int t_life =  5*365*24*60*60 ;//1000 * 10;   // it's a "fak
 
 static float Rt = 0.8 ; 
 
-static float error_integral[4] = {0,0,0,0};
+static float error_integral[NUM_CLUSTERS * CPUS_PER_CLUSTER] = {0,0,0,0,0,0,0,0};
 
 struct core_d {
 	float scale_par;
@@ -63,7 +65,7 @@ struct core_d {
 	float V_LI;    //note: this is in [Volts]
 } ; 
 
-struct core_d core_data[NUM_CORES] ;
+struct core_d core_data[NUM_CLUSTERS * CPUS_PER_CLUSTER] ;
 
 
 
@@ -144,7 +146,7 @@ float pdf_v( float v , float offset , float mult , float degrees);
 void main(int argc, char ** argv){
 	
 	FILE *file;
-	unsigned int pid , activate_safe_mode[NUM_CORES]= {0,0,0,0,0,0,0,0};
+	unsigned int pid , activate_safe_mode[NUM_CLUSTERS * CPUS_PER_CLUSTER]= {0,0,0,0,0,0,0,0};
 	FILE *fpid;
 	//initialize
 	
@@ -166,9 +168,9 @@ void main(int argc, char ** argv){
 
 
 	// NORMAL: use this for exp 10
-	float offset_a = 2.5;  //1.5
+	float offset_a = 3;  //1.5
 	float mult_a = 150;
-	float tau_a = 0.007;
+	float tau_a = 0.009;
 	float tauvolt_a = 3;
 	float mult_b = 4;
 	float tau_b = 0.01;
@@ -219,7 +221,7 @@ void main(int argc, char ** argv){
 	float v ; 
 
 	// normalized core area wrt the minimum 
-	float A = 1;
+	float A[NUM_CLUSTERS] = {0.13, 1};
 
 	// PI controller
 	float Kp = 0.5 ; 
@@ -228,32 +230,33 @@ void main(int argc, char ** argv){
 	float err_int ; 
 
 	//min and max
-	float V_MIN = 0.95;
-	float V_MAX = 1.25;
-	float V_AVERAGE = 1.1;
+	float V_MIN[NUM_CLUSTERS] = {1.075,1};
+	float V_MAX[NUM_CLUSTERS] = {1.250, 1.3};
+	float V_AVERAGE[NUM_CLUSTERS] = {1.163,1.150};
 
 	// moving average
 	float gamma = 0.1 ;
-	float V_bar[NUM_CORES] = {V_AVERAGE,V_AVERAGE,V_AVERAGE,V_AVERAGE,V_AVERAGE,V_AVERAGE,V_AVERAGE,V_AVERAGE};
-	float T_bar[NUM_CORES] = {50,50,50,50,50,50,50,50}; 
+	float V_bar[NUM_CLUSTERS * CPUS_PER_CLUSTER] = {V_AVERAGE[0],V_AVERAGE[0],V_AVERAGE[0],V_AVERAGE[0],V_AVERAGE[1],V_AVERAGE[1],V_AVERAGE[1],V_AVERAGE[1]};
+	float T_bar[NUM_CLUSTERS * CPUS_PER_CLUSTER] = {40,40,40,40,40,40,40,40};
+	
 
 	//other variables
 	int fd;
 	int i , num_active_cpus;
-	long unsigned int 	delta_LI[NUM_CORES] = {0,0,0,0,0,0,0,0}, 
-				V_LI[NUM_CORES] = {0,0,0,0,0,0,0,0} ,
-				t_LI[NUM_CORES] = {0,0,0,0,0,0,0,0},
-				T_LI[NUM_CORES] = {50,50,50,50,50,50,50,50},
-				jiffies[NUM_CORES] = {0,0,0,0,0,0,0,0};
+	long unsigned int 	delta_LI[NUM_CLUSTERS * CPUS_PER_CLUSTER] = {0,0,0,0,0,0,0,0}, 
+				V_LI[NUM_CLUSTERS * CPUS_PER_CLUSTER] = {0,0,0,0,0,0,0,0} ,
+				t_LI[NUM_CLUSTERS * CPUS_PER_CLUSTER] = {0,0,0,0,0,0,0,0},
+				T_LI[NUM_CLUSTERS * CPUS_PER_CLUSTER] = {40,40,40,40,40,40,40,40},
+				jiffies[NUM_CLUSTERS * CPUS_PER_CLUSTER] = {0,0,0,0,0,0,0,0};
 	float delta_LI_virt = 30 * 24 *60 * 60 ;   //36.5 for 3 years!  //73 for 5 years
 	long unsigned int new_V_LTC = 1200, new_V_STC_start = 1000 , init_t_LI = 0;
-	float new_V_LTC_float[NUM_CORES];
-	int LI_index[NUM_CORES] = {1,1,1,1,1,1,1,1};
+	float new_V_LTC_float[NUM_CLUSTERS * CPUS_PER_CLUSTER];
+	int LI_index[NUM_CLUSTERS * CPUS_PER_CLUSTER] = {1,1,1,1,1,1,1,1};
 	int count = 0 , max_num_long_intervals = 28;
-	float V_ERR[NUM_CORES] = {0,0,0,0,0,0,0,0};
-	float old_V_LTC_float[NUM_CORES];
+	float V_ERR[NUM_CLUSTERS * CPUS_PER_CLUSTER] = {0,0,0,0,0,0,0,0};
+	float old_V_LTC_float[NUM_CLUSTERS * CPUS_PER_CLUSTER];
 	//variables initialization
-	float initial_R_degr[NUM_CORES] = {0,0,0,0,0,0,0,0};
+	float initial_R_degr[NUM_CLUSTERS * CPUS_PER_CLUSTER] = {0,0,0,0,0,0,0,0};
 	subdomain_area = subdomain_step_u * subdomain_step_v;
 	u_num_step = (int)(( u_max - u_min ) / subdomain_step_u);
 	v_num_step = (int)(( v_max - v_min ) / subdomain_step_v);
@@ -337,20 +340,25 @@ void main(int argc, char ** argv){
 
 
 
-
-				ioctl(fd, GET_V_LI, &V_LI[i]);
-
+				if(i % CPUS_PER_CLUSTER == 0)
+					ioctl(fd, GET_V_LI, &V_LI[i]);
+				else 
+					V_LI[i] = V_LI[(i / CPUS_PER_CLUSTER) * CPUS_PER_CLUSTER];
 				
 				core_data[i].V_LI = V_LI[i] * 0.001 ; 
 
 				//remove this part !!!!
-				if (core_data[i].V_LI>V_MAX){
-					core_data[i].V_LI=V_MAX;
+				if (core_data[i].V_LI>V_MAX[i / CPUS_PER_CLUSTER]){
+					core_data[i].V_LI=V_MAX[i / CPUS_PER_CLUSTER];
 				}
 
-				printf("LTC %u : V_LI = %lu\n" ,i, V_LI[i]);
+				printf("LTC %u : V_LI = %lu and V_MAX = %f\n" ,i, V_LI[i], V_MAX[i / CPUS_PER_CLUSTER]);
+				
 				ioctl(fd, GET_T_LI, &T_LI[i]); //for temperature
-
+				T_LI[i] = T_LI[i] * 0.001;
+				if( i / CPUS_PER_CLUSTER == 0)
+					T_LI[i] = T_LI[i] * 0.85;
+				printf("LTC %u : T_LI = %lu\n",i, T_LI[i]);
 
 				
 
@@ -366,12 +374,12 @@ void main(int argc, char ** argv){
 				core_data[i].shape_par = shape_par( T_LI[i] ,  core_data[i].V_LI ,  mult_b ,  tau_b ,  offset_b ,  multvolt_b); 
 				core_data[i].scale_par_life = 365*24*60*60*scale_par(T_bar[i] , V_bar[i] , offset_a ,  mult_a ,  tau_a ,  tauvolt_a );
 				core_data[i].shape_par_life = shape_par(T_bar[i] , V_bar[i] , mult_b , tau_b , offset_b , multvolt_b);
-				core_data[i].scale_par_life_safe = 365*24*60*60*scale_par(T_bar[i] + 5 ,V_MIN , offset_a ,mult_a ,  tau_a ,  tauvolt_a);
-				core_data[i].shape_par_life_safe = shape_par(T_bar[i] + 5 , V_MIN , mult_b , tau_b , offset_b , multvolt_b);
+				core_data[i].scale_par_life_safe = 365*24*60*60*scale_par(T_bar[i] + 5 ,V_MIN[i / CPUS_PER_CLUSTER] , offset_a ,mult_a ,  tau_a ,  tauvolt_a);
+				core_data[i].shape_par_life_safe = shape_par(T_bar[i] + 5 , V_MIN[i / CPUS_PER_CLUSTER] , mult_b , tau_b , offset_b , multvolt_b);
 				
 
 				// compute Rd and Rp
-				core_data[i].R = calc_R(A,
+				core_data[i].R = calc_R(A[i / CPUS_PER_CLUSTER],
 							u_max,
 							u_min,
 							v_max,
@@ -396,7 +404,7 @@ void main(int argc, char ** argv){
 							core_data[i].R);
 
 
-				core_data[i].Rp = calc_Rp(	A,
+				core_data[i].Rp = calc_Rp(	A[i / CPUS_PER_CLUSTER],
 								u_max,
 								u_min,
 								v_max,
@@ -421,7 +429,7 @@ void main(int argc, char ** argv){
 								core_data[i].R);
 
 
-				core_data[i].Rp_safe = calc_Rp(	A,
+				core_data[i].Rp_safe = calc_Rp(	A[i / CPUS_PER_CLUSTER],
 								u_max,
 								u_min,
 								v_max,
@@ -451,7 +459,12 @@ void main(int argc, char ** argv){
 					activate_safe_mode[i] = 1;
 					ioctl (fd , ACTIVATE_SAFE_MODE , &i);
 				}
+				else if ((core_data[i].Rp_safe > 1.02 * Rt ) && (activate_safe_mode[i]==1 )){
 
+					printf("\n\nLTC : DEACTIVATE SAFE MODE !!!!\n\n");
+					activate_safe_mode[i] = 0;
+					ioctl (fd , DEACTIVATE_SAFE_MODE , &i);
+				}
 				// PI control
 
 				error_integral[i] = update_error_integral (core_data[i].Rp , Rt , error_integral[i] , LI_index[i] ,delta_LI_virt);
@@ -498,7 +511,7 @@ gettimeofday(&tv, NULL);
 
 printf("\n\n\nTIME FOR EXECUTING ONE LTC LOOP = %d\n\n\n" ,time_after - time_before );
 */
-				printf("LONG TERM CONTROLLER %u : ACTIVATED !!!!!!!!\n" , i);
+				printf("LONG TERM CONTROLLER %u in LI_index = %d : ACTIVATED !!!!!!!!\n" , i, LI_index[i]);
 
 				if((file = fopen("/data/reliability_governor/program/LTC.txt","a")) == NULL){
 					printf("LTC.txt not found...\n");
@@ -522,7 +535,12 @@ printf("\n\n\nTIME FOR EXECUTING ONE LTC LOOP = %d\n\n\n" ,time_after - time_bef
 						new_V_LTC_float[i],
 						T_LI[i],
 						V_ERR[i]);
-
+				
+				if((i+1) % CPUS_PER_CLUSTER == 0)
+					fprintf( file , "\n");
+				if((i+1) % (CPUS_PER_CLUSTER * NUM_CLUSTERS) == 0)
+					fprintf( file , "\n\n");
+				
 				fclose(file);
 				LI_index[i]++;
 
