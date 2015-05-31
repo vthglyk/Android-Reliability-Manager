@@ -1,2 +1,0 @@
-/home/sem15f6/Android-Reliability-Manager/Reliability-Manager/monitor_infrastructure/monitor_infrastructure_driver/monitor_infrastructure_driver.ko
-/home/sem15f6/Android-Reliability-Manager/Reliability-Manager/monitor_infrastructure/monitor_infrastructure_driver/monitor_infrastructure_driver.o
